@@ -13,6 +13,7 @@ use workers::{
 };
 
 use crate::workers::{
+    cutscenes::PollCutscenes,
     feeds::{PollPlayerFeeds, PollTeamFeeds, ProcessFeeds},
     games::HandleSuperstarGames,
     league::PollBenches,
@@ -113,6 +114,7 @@ async fn main() -> anyhow::Result<()> {
         spawn(ctx.clone(), ProcessFeeds);
         spawn(ctx.clone(), PollTeamFeeds);
         spawn(ctx.clone(), PollPlayerFeeds);
+        spawn(ctx.clone(), PollCutscenes);
 
         stop_signal().await?;
         info!("got ctrl-c, exiting");

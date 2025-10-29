@@ -165,7 +165,9 @@ impl IntervalWorker for LookupMapLocations {
         let teams = ctx.db.get_all_latest(EntityKind::Team).await?;
         for team in teams {
             let team = team.parse::<MmolbTeam>()?;
-            search_place_inner(ctx, &team.full_location).await?;
+            if let Some(full_location) = team.full_location {
+                search_place_inner(ctx, &full_location).await?;
+            }
         }
 
         Ok(())

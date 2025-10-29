@@ -47,7 +47,7 @@ pub struct DbTeam {
     pub league_id: Option<String>,
     pub name: String,
     pub location: String,
-    pub full_location: String,
+    pub full_location: Option<String>,
     pub emoji: String,
     pub color: String,
     pub abbreviation: String,
@@ -862,10 +862,10 @@ pub struct DbTeamSaveModel<'a> {
     pub league_id: Option<&'a str>,
     pub location: &'a str,
     pub name: &'a str,
-    pub full_location: &'a str,
+    pub full_location: Option<&'a str>,
     pub emoji: &'a str,
     pub color: &'a str,
-    pub abbreviation: &'a str,
+    pub abbreviation: Option<&'a str>,
 }
 
 pub struct DbLeagueSaveModel<'a> {

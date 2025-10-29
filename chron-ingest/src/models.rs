@@ -54,8 +54,8 @@ pub struct MmolbTeam {
     #[serde(rename = "Location")]
     pub location: String,
 
-    #[serde(rename = "FullLocation")]
-    pub full_location: String,
+    #[serde(rename = "FullLocation", default)]
+    pub full_location: Option<String>,
 
     #[serde(rename = "Color")]
     pub color: String,
@@ -63,11 +63,29 @@ pub struct MmolbTeam {
     #[serde(rename = "Emoji")]
     pub emoji: String,
 
-    #[serde(rename = "Abbreviation")]
-    pub abbreviation: String,
+    #[serde(rename = "Abbreviation", default)]
+    pub abbreviation: Option<String>,
 
     #[serde(rename = "Players")]
     pub players: Vec<MmolbTeamPlayer>,
+
+    #[serde(rename = "Bench", default)]
+    pub bench: Option<MmolbBench>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct MmolbBench {
+    #[serde(rename = "Batters")]
+    pub batters: Vec<MmolbBenchPlayer>,
+
+    #[serde(rename = "Pitchers")]
+    pub pitchers: Vec<MmolbBenchPlayer>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct MmolbBenchPlayer {
+    #[serde(rename = "PlayerID")]
+    pub player_id: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -164,7 +182,7 @@ pub enum MmolbGameEvent {
         batter: Option<String>,
         inning: i32,
         inning_side: i32,
-    }
+    },
 }
 
 #[derive(Debug, Deserialize)]

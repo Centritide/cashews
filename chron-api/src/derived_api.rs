@@ -163,9 +163,12 @@ pub async fn locations_inner(ctx: AppState) -> anyhow::Result<Vec<TeamLocation>>
     let teams = ctx.db.get_teams().await?;
     let teams_augmented = teams
         .into_iter()
+        .filter(|team| team.full_location.is_some())
         .map(|team| TeamLocation {
             location: locations_map
-                .get(&normalize_location(&team.full_location))
+                .get(&normalize_location(
+                    &team.full_location.clone().unwrap().as_ref(),
+                ))
                 .cloned(),
             team: team,
         })

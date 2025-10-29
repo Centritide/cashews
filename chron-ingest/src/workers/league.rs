@@ -85,43 +85,45 @@ impl IntervalWorker for PollBenches {
     }
 
     async fn tick(&mut self, ctx: &mut WorkerContext) -> anyhow::Result<()> {
-        let mut stream = ctx.db.get_all_latest_stream(EntityKind::Game);
-        let mut bench_players = HashSet::new();
-        let mut i = 0;
-        while let Some(game_ver) = stream.try_next().await? {
-            match game_ver.parse::<GameWithBench>() {
-                Ok(parsed) => {
-                    if let Some(bench) = parsed.original_bench {
-                        for team_bench in bench.values() {
-                            // todo: mark if a bench player is a pitcher or a batter?
-                            bench_players.extend(team_bench.batters.iter().cloned());
-                            bench_players.extend(team_bench.pitchers.iter().cloned());
-                        }
-                    }
-                }
-                Err(e) => warn!(
-                    "failed to parse game with bench {}: {:?}",
-                    game_ver.entity_id, e
-                ),
-            }
-            if i % 1000 == 0 {
-                info!("finding bench players (at {} games)", i);
-            }
-            i += 1;
-        }
-
-        info!("found {} players on bench, polling", bench_players.len());
-
-        let bench_players = Vec::from_iter(bench_players);
-        ctx.process_many_with_progress(
-            bench_players.chunks(100),
-            1,
-            "fetch bench players",
-            fetch_players_bulk,
-        )
-        .await;
-
+        // TODO: I don't think we need this
         Ok(())
+        // let mut stream = ctx.db.get_all_latest_stream(EntityKind::Game);
+        // let mut bench_players = HashSet::new();
+        // let mut i = 0;
+        // while let Some(game_ver) = stream.try_next().await? {
+        //     match game_ver.parse::<GameWithBench>() {
+        //         Ok(parsed) => {
+        //             if let Some(bench) = parsed.original_bench {
+        //                 for team_bench in bench.values() {
+        //                     // todo: mark if a bench player is a pitcher or a batter?
+        //                     bench_players.extend(team_bench.batters.iter().cloned());
+        //                     bench_players.extend(team_bench.pitchers.iter().cloned());
+        //                 }
+        //             }
+        //         }
+        //         Err(e) => warn!(
+        //             "failed to parse game with bench {}: {:?}",
+        //             game_ver.entity_id, e
+        //         ),
+        //     }
+        //     if i % 1000 == 0 {
+        //         info!("finding bench players (at {} games)", i);
+        //     }
+        //     i += 1;
+        // }
+
+        // info!("found {} players on bench, polling", bench_players.len());
+
+        // let bench_players = Vec::from_iter(bench_players);
+        // ctx.process_many_with_progress(
+        //     bench_players.chunks(100),
+        //     1,
+        //     "fetch bench players",
+        //     fetch_players_bulk,
+        // )
+        // .await;
+
+        // Ok(())
     }
 }
 
@@ -202,10 +204,10 @@ pub async fn fetch_team(ctx: &WorkerContext, id: String) -> anyhow::Result<()> {
             league_id: team_data.league.as_deref(),
             location: &team_data.location,
             name: &team_data.name,
-            full_location: &team_data.full_location,
+            full_location: team_data.full_location.as_deref(),
             emoji: &team_data.emoji,
             color: &team_data.color,
-            abbreviation: &team_data.abbreviation,
+            abbreviation: team_data.abbreviation.as_deref(),
         })
         .await?;
 
@@ -300,7 +302,7 @@ async fn get_all_known_team_ids(ctx: &WorkerContext) -> anyhow::Result<HashSet<S
 }
 
 async fn get_all_known_player_ids(ctx: &WorkerContext) -> anyhow::Result<HashSet<String>> {
-    let mut team_ids = HashSet::new();
+    let mut player_ids = HashSet::new();
 
     // get from DB teams
     let get_all_latest = ctx.db.get_all_latest(EntityKind::Team).await?;
@@ -309,18 +311,27 @@ async fn get_all_known_player_ids(ctx: &WorkerContext) -> anyhow::Result<HashSet
 
         for player_slot in team.players {
             if player_slot.player_id != "#" {
-                team_ids.insert(player_slot.player_id);
+                player_ids.insert(player_slot.player_id);
+            }
+        }
+
+        if let Some(bench) = team.bench {
+            for batter in bench.batters {
+                player_ids.insert(batter.player_id);
+            }
+            for pitcher in bench.pitchers {
+                player_ids.insert(pitcher.player_id);
             }
         }
     }
 
     // get from DB players
-    team_ids.extend(ctx.db.get_all_entity_ids(EntityKind::Player).await?);
+    player_ids.extend(ctx.db.get_all_entity_ids(EntityKind::Player).await?);
 
     // get from stats obj?
-    team_ids.extend(ctx.db.get_all_player_ids_from_stats().await?);
+    player_ids.extend(ctx.db.get_all_player_ids_from_stats().await?);
 
-    Ok(team_ids)
+    Ok(player_ids)
 }
 
 pub async fn fetch_all_players(ctx: &WorkerContext) -> anyhow::Result<()> {
